@@ -3,7 +3,10 @@ This simulation compares two crowd movement strategies:
 - BioCrowds: based on virtual markers to guide movement.
 - Boids: based on flocking rules: separation, alignment, cohesion.
 
-Agents are assigned goals and navigate an environment possibly containing obstacles, using the selected behavior models. Checkout our demo.
+Agents are assigned goals and navigate an environment possibly containing obstacles, using the selected behavior models.
+
+![output](https://github.com/user-attachments/assets/52f42061-1ea0-4dce-8714-d5ccd0bca636)
+
 
 ---
 
