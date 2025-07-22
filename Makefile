@@ -55,7 +55,7 @@ sim5:
 sim6:
 	@echo "Simulating Biocrowds - 40 agents - 4 groups - no obstacles"
 	python3 boids_biocrowds.py \
-		--radius 0.3 \
+		--radius 0.2 \
 		--num-agents 40 \
 		--num-groups 4 \
 		--perception 1 \
@@ -65,7 +65,7 @@ sim6:
 sim7:
 	@echo "Simulating Biocrowds - 40 agents - 4 groups - no obstacles - allowing biocrowds collisions"
 	python3 boids_biocrowds.py \
-		--radius 0.3 \
+		--radius 0.2 \
 		--num-agents 40 \
 		--num-groups 4 \
 		--perception 1 \
