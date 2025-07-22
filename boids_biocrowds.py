@@ -7,6 +7,7 @@ from tqdm import tqdm
 from matplotlib.patches import Circle
 from matplotlib.lines import Line2D
 
+from convex_hull import compute_convex_hull, get_blocking_edges, perpendicular_distance_to_edge, perpendicular_movement_to_edge
 
 # --- Parameters ---
 SPACE_SIZE = (20, 20)
@@ -95,7 +96,7 @@ class BioCrowdsAgent(Agent):
 
           # Calculated move vector (x,y), clipped to max velocity
           calculated_move = self.clip_velocity(speed_vector)
-          move = self.__calculate_move_with_collision_avoidance(agents, calculated_move)
+          move = self.__calculate_move_with_collision_avoidance(calculated_move)
          
       
       # Apply the move vector to the agent's position
@@ -103,30 +104,44 @@ class BioCrowdsAgent(Agent):
       self.velocity = move
       self.position += self.velocity
 
-    def __calculate_move_with_collision_avoidance(self, agents, calculated_move):
+    def __calculate_move_with_collision_avoidance(self, calculated_move):
       if args.allow_biocrowds_collision:
           return calculated_move
-
-      # Apply collision avoidance with other agents
-      other_agents_positions = np.array([agent.position for agent in agents if agent is not self], dtype=float)
-
-      # Calculate the minimum distance to other agents
-      # and the new minimum distance after applying the calculated move
-      min_agent_distance = min(np.linalg.norm(other_agents_positions - self.position, axis=1))
-      new_min_agent_distance = min(np.linalg.norm(other_agents_positions - (self.position + calculated_move), axis=1))
-
-      # We are currently collided
-      if min_agent_distance < 2 * args.radius:
-          # If we are moving away from collison, allow full movement
-          return calculated_move if new_min_agent_distance > min_agent_distance else np.zeros(2)
       
-      # We are not collided. Calculate the percentage of movement we can do
-      total_movement = np.linalg.norm(calculated_move)
-      allowed_percetage = 1.0
-      if new_min_agent_distance < 2 * args.radius:
-        overlap_distance = 2 * args.radius - new_min_agent_distance
-        allowed_percetage = (total_movement - overlap_distance) / total_movement
-      
+      # Compute the convex hull of the agent's close markers.
+      markers_points = np.array([marker.position for marker in self.close_markers if marker.closer_agent is self], dtype=float)
+      if len(markers_points) < 3:
+          # Not enough points to form a convex hull, return the calculated move
+          hull_points = markers_points
+      else:
+          hull_points = compute_convex_hull(markers_points)
+
+      # Identify edges of the convex hull that block the agent's intended movement.
+      blocking_edges = get_blocking_edges(calculated_move, hull_points)
+
+      # For each blocking edge, determine how much of the movement is allowed before crossing the edge.
+      alphas = []
+      for a, b, normal in blocking_edges:
+        # Compute the perpendicular distance from the agent to the edge, minus the agent's radius.
+        dist = abs(perpendicular_distance_to_edge(self.position, a, normal)) - args.radius
+
+        # Project the intended movement onto the edge's normal (perpendicular direction).
+        proj_length = perpendicular_movement_to_edge(calculated_move, normal)
+
+        # If the agent is already past the edge, disallow further movement in that direction.
+        if dist < 0:
+          alphas.append(0.0)
+          break
+        else:
+          # Otherwise, calculate the maximum fraction of the movement that keeps the agent inside the hull.
+          # If the available distance is greater than the projected movement, allow full movement; otherwise, scale it.
+          alpha = min(1.0, abs(dist / (proj_length + 1e-8)))
+          alphas.append(alpha)
+
+      # The allowed percentage is the most restrictive (smallest) alpha among all blocking edges.
+      allowed_percetage = min(alphas) if alphas else 1.0
+
+      # Scale the movement vector to ensure the agent does not cross any blocking edge.
       return calculated_move * allowed_percetage
 
 class BoidsAgent(Agent):
