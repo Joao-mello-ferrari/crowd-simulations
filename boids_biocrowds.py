@@ -112,7 +112,7 @@ class BioCrowdsAgent(Agent):
       markers_points = np.array([marker.position for marker in self.close_markers if marker.closer_agent is self], dtype=float)
       if len(markers_points) < 3:
           # Not enough points to form a convex hull, return the calculated move
-          hull_points = markers_points
+          return calculated_move
       else:
           hull_points = compute_convex_hull(markers_points)
 
