@@ -69,8 +69,8 @@ class BioCrowdsAgent(Agent):
         self.close_markers = []
     
     @override
-    def update(self, agents: np.ndarray):
-      agent_markers_positions = np.array([marker.position for marker in self.close_markers if marker.closer_agent is self], dtype=float)
+    def update(self, _: np.ndarray):
+      agent_markers_positions = np.array([marker.position for marker in self.close_markers], dtype=float)
 
       if len(agent_markers_positions) == 0:
           # No markers assigned to this agent, sit still
@@ -344,10 +344,10 @@ for step in tqdm(range(total_steps), desc="Simulating"):
                 marker.closer_agent = agent
                 marker.closer_agent_distance = distance
                 
-                # For BioCrowds agents, we keep track of the markers they are close
-                # This improves performance by avoiding repeated distance calculations during update()
-                if isinstance(agent, BioCrowdsAgent):
-                  agent.close_markers.append(marker)
+        # For BioCrowds agents, we keep track of the markers they are close
+        # This improves performance by avoiding repeated distance calculations during update()
+        if isinstance(marker.closer_agent, BioCrowdsAgent):
+            marker.closer_agent.close_markers.append(marker)
 
 
     # Move agents
